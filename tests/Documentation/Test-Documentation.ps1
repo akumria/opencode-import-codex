@@ -68,6 +68,7 @@ $requiredTestPaths = @(
     'tests/Publication/Test-Publication.ps1',
     'tests/Unit/Test-CodexCustomToolOutput.ps1',
     'tests/Unit/Test-OpenCodeBundleValidation.ps1',
+    'tests/Unit/Test-CodexCompressedRollouts.ps1',
     'tests/Support/New-SyntheticCodexData.ps1',
     'tests/Fixtures/ComplexLegacy/Codex'
 )
