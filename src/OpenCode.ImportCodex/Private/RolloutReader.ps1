@@ -23,6 +23,14 @@ function Get-ZstdCommandPath {
     $null
 }
 
+function Get-ZstdCommandInfo {
+    $path = Get-ZstdCommandPath
+    if (-not $path) { return [pscustomobject]@{ Installed = $false; Path = ''; Version = '' } }
+    $version = ''
+    try { $version = ((& $path --version 2>$null) | Out-String).Trim() } catch { $version = 'installed (version check failed)' }
+    [pscustomobject]@{ Installed = $true; Path = $path; Version = $version }
+}
+
 function Test-CodexRolloutCompressed {
     param([Parameter(Mandatory)][string]$Path)
     $Path.EndsWith('.zst', [System.StringComparison]::OrdinalIgnoreCase)
