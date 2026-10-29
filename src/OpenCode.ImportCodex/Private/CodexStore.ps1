@@ -37,10 +37,17 @@ function Get-CodexSessionTitleMap {
 function Get-CodexSessionInventory {
     param([Parameter(Mandatory)][string]$CodexDataRoot)
     $sessionsRoot = Join-Path $CodexDataRoot 'sessions'
-    if (-not (Test-Path -LiteralPath $sessionsRoot -PathType Container)) { return @() }
+    $archivedRoot = Join-Path $CodexDataRoot 'archived_sessions'
+    if (-not (Test-Path -LiteralPath $sessionsRoot -PathType Container) -and -not (Test-Path -LiteralPath $archivedRoot -PathType Container)) { return @() }
     $titles = Get-CodexSessionTitleMap $CodexDataRoot
     $sessions = New-Object 'System.Collections.Generic.List[object]'
-    foreach ($file in Get-ChildItem -LiteralPath $sessionsRoot -Filter 'rollout-*.jsonl' -File -Recurse) {
+    foreach ($root in @($sessionsRoot, $archivedRoot)) {
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+        $rolloutFiles = @(
+            Get-ChildItem -LiteralPath $root -Filter 'rollout-*.jsonl' -File -Recurse
+            Get-ChildItem -LiteralPath $root -Filter 'rollout-*.jsonl.zst' -File -Recurse
+        ) | Sort-Object -Property FullName -Unique
+        foreach ($file in $rolloutFiles) {
         try {
             $record = (Read-SharedFirstLine $file.FullName) | ConvertFrom-Json
             if ($record.type -ne 'session_meta') { continue }
@@ -65,7 +72,12 @@ function Get-CodexSessionInventory {
             Write-Warning "Could not read Codex metadata from $($file.FullName): $($_.Exception.Message)"
         }
     }
-    @($sessions | Sort-Object Started -Descending)
+    $unique = @{}
+    foreach ($session in @($sessions | Sort-Object Started -Descending)) {
+        if ($unique.ContainsKey($session.Id)) { continue }
+        $unique[$session.Id] = $session
+    }
+    @($unique.Values | Sort-Object Started -Descending)
 }
 
 function ConvertFrom-CodexSessionReference {
