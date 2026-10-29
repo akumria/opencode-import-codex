@@ -48,28 +48,29 @@ function Get-CodexSessionInventory {
             Get-ChildItem -LiteralPath $root -Filter 'rollout-*.jsonl.zst' -File -Recurse
         ) | Sort-Object -Property FullName -Unique
         foreach ($file in $rolloutFiles) {
-        try {
-            $record = (Read-SharedFirstLine $file.FullName) | ConvertFrom-Json
-            if ($record.type -ne 'session_meta') { continue }
-            $meta = $record.payload
-            $id = if ($meta.id) { [string]$meta.id } else { [string]$meta.session_id }
-            if (-not $id) { continue }
-            try { Confirm-CodexSessionId $id } catch {
-                Write-Warning "Ignored rollout with an unsafe session ID: $($file.FullName)"
-                continue
+            try {
+                $record = (Read-SharedFirstLine $file.FullName) | ConvertFrom-Json
+                if ($record.type -ne 'session_meta') { continue }
+                $meta = $record.payload
+                $id = if ($meta.id) { [string]$meta.id } else { [string]$meta.session_id }
+                if (-not $id) { continue }
+                try { Confirm-CodexSessionId $id } catch {
+                    Write-Warning "Ignored rollout with an unsafe session ID: $($file.FullName)"
+                    continue
+                }
+                $title = if ($titles.ContainsKey($id)) { $titles[$id] } else { '' }
+                $session = [pscustomobject]@{
+                    Id = $id
+                    Started = [datetimeoffset]$meta.timestamp
+                    Title = $title
+                    Directory = [string]$meta.cwd
+                    SourcePath = $file.FullName
+                }
+                $session.PSObject.TypeNames.Insert(0, 'OpenCode.ImportCodex.CodexSession')
+                $sessions.Add($session) | Out-Null
+            } catch {
+                Write-Warning "Could not read Codex metadata from $($file.FullName): $($_.Exception.Message)"
             }
-            $title = if ($titles.ContainsKey($id)) { $titles[$id] } else { '' }
-            $session = [pscustomobject]@{
-                Id = $id
-                Started = [datetimeoffset]$meta.timestamp
-                Title = $title
-                Directory = [string]$meta.cwd
-                SourcePath = $file.FullName
-            }
-            $session.PSObject.TypeNames.Insert(0, 'OpenCode.ImportCodex.CodexSession')
-            $sessions.Add($session) | Out-Null
-        } catch {
-            Write-Warning "Could not read Codex metadata from $($file.FullName): $($_.Exception.Message)"
         }
     }
     $unique = @{}
@@ -116,7 +117,7 @@ function Resolve-CodexInputSession {
     $root = if ($CodexDataRoot) { Resolve-CodexDataRoot $CodexDataRoot } else { '' }
     if (-not $root) {
         $directory = (Get-Item -LiteralPath $sourcePath).Directory
-        while ($directory -and $directory.Name -ne 'sessions') { $directory = $directory.Parent }
+        while ($directory -and $directory.Name -ne 'sessions' -and $directory.Name -ne 'archived_sessions') { $directory = $directory.Parent }
         if (-not $directory -or -not $directory.Parent) { throw "Could not infer the Codex data root from SourcePath: $sourcePath" }
         $root = $directory.Parent.FullName
     }
