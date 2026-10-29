@@ -15,10 +15,8 @@ function Resolve-CodexDataRoot {
 
 function Read-SharedFirstLine {
     param([Parameter(Mandatory)][string]$Path)
-    $share = [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
-    $stream = New-Object System.IO.FileStream($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, $share)
-    $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8, $true)
-    try { $reader.ReadLine() } finally { $reader.Dispose(); $stream.Dispose() }
+    $source = Open-CodexRolloutReader -Path $Path
+    try { $source.Reader.ReadLine() } finally { Close-CodexRolloutReader -Source $source -AllowEarlyExit }
 }
 
 function Get-CodexSessionTitleMap {

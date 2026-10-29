@@ -50,12 +50,12 @@ foreach ($command in $expectedCommands) {
 $loader = Get-Content -LiteralPath $LoaderPath -Raw -Encoding UTF8
 $privateFiles = @([regex]::Matches($loader, "'Private/(?<name>[^']+\.ps1)'") | ForEach-Object { $_.Groups['name'].Value })
 $publicFiles = @([regex]::Matches($loader, "'Public/(?<name>[^']+\.ps1)'") | ForEach-Object { $_.Groups['name'].Value })
-Assert-Documentation ($privateFiles.Count -eq 7) "loader should contain seven private files, found $($privateFiles.Count)"
+Assert-Documentation ($privateFiles.Count -eq 8) "loader should contain eight private files, found $($privateFiles.Count)"
 Assert-Documentation ($publicFiles.Count -eq 8) "loader should contain eight public files, found $($publicFiles.Count)"
 foreach ($fileName in @($privateFiles + $publicFiles)) {
     Assert-Documentation ($architectureDocument -cmatch [regex]::Escape($fileName)) "Architecture.md repository tree or responsibility table is missing $fileName"
 }
-Assert-Documentation ($architectureDocument -match 'Seven private files are dot-sourced') 'Architecture.md must state the correct private-file load count'
+Assert-Documentation ($architectureDocument -match 'Eight private files are dot-sourced') 'Architecture.md must state the correct private-file load count'
 Assert-Documentation ($architectureDocument -match 'opencode db') 'Architecture.md must distinguish global inventory through opencode db'
 Assert-Documentation ($architectureDocument -match 'project-scoped.*opencode session list') 'Architecture.md must identify project-scoped import verification'
 
